@@ -6,8 +6,6 @@ import (
 )
 
 func main() {
-	for i := 0; i < 100; i++ {
-		pin := pin.Generate()
-		fmt.Println(pin)
-	}
+	pin := pin.Generate()
+	fmt.Println(pin)
 }
