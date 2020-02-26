@@ -17,7 +17,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "PIN", log.LstdFlags|log.Lshortfile)
 
-	service := pinService{logger}
+	service := pin.NewGeneratorService(logger)
 	flag.Parse()
 	r := mux.NewRouter()
 
@@ -37,10 +37,10 @@ func main() {
 }
 
 //PinHandler serve / by returning a closure
-func PinHandler(s PinService) func(w http.ResponseWriter, r *http.Request) {
+func PinHandler(g pin.Generator) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		pin := s.Generate()
+		pin := g.Generate()
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -48,19 +48,4 @@ func PinHandler(s PinService) func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"pin": pin})
 	}
-}
-
-// PinService service definition
-type PinService interface {
-	Generate() string
-}
-
-type pinService struct {
-	logger *log.Logger
-}
-
-func (s pinService) Generate() string {
-	pin := pin.Generate()
-	s.logger.Printf("Service generate pin %s", pin)
-	return pin
 }
