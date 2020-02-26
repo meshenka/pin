@@ -21,12 +21,7 @@ func main() {
 	flag.Parse()
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		pin := service.generate()
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"pin": pin})
-	}).Methods("GET")
+	r.HandleFunc("/", PinHandler(service)).Methods("GET")
 
 	logger.Printf("Starting on port %s", *port)
 
@@ -41,11 +36,30 @@ func main() {
 	logger.Fatal(srv.ListenAndServe())
 }
 
+//PinHandler serve / by returning a closure
+func PinHandler(s PinService) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		pin := s.Generate()
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"pin": pin})
+	}
+}
+
+// PinService service definition
+type PinService interface {
+	Generate() string
+}
+
 type pinService struct {
 	logger *log.Logger
 }
 
-func (s pinService) generate() string {
+func (s pinService) Generate() string {
 	pin := pin.Generate()
 	s.logger.Printf("Service generate pin %s", pin)
 	return pin
