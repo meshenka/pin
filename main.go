@@ -1,14 +1,28 @@
-package pin
+package main
 
 import (
+	"flag"
+	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
-// Generator expose the service API
-type Generator interface {
-	Get() string
+func main() {
+	iterations := flag.Int("n", 100, "Number of pin code to generate")
+	flag.Parse()
+	var wg sync.WaitGroup
+	wg.Add(*iterations)
+	for i := 0; i < *iterations; i++ {
+		go func() {
+			defer wg.Done()
+			code := Generate()
+			fmt.Println(code)
+		}()
+	}
+
+	wg.Wait()
 }
 
 // Generate security rules
