@@ -11,13 +11,13 @@ import (
 func main() {
 	iterations := flag.Int("n", 100, "Number of pin code to generate")
 	flag.Parse()
+	g := pin.NewGenerator()
 	var wg sync.WaitGroup
 	wg.Add(*iterations)
 	for i := 0; i < *iterations; i++ {
 		go func() {
 			defer wg.Done()
-			code := pin.Generate()
-			fmt.Println(code)
+			fmt.Println(g.Generate())
 		}()
 	}
 

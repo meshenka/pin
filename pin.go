@@ -32,15 +32,27 @@ var (
 	}
 )
 
+// GeneratorFunc is a stateless implementation as a function
+type GeneratorFunc func() string
+
+func (f GeneratorFunc) Generate() string {
+	return f()
+}
+
+// NewGenerator creates a Generator service
+func NewGenerator() GeneratorFunc {
+	return GeneratorFunc(generate)
+}
+
 // Generate security rules
 // * cannot be a repeated digit
 // * cannot be a suite of following digits (ascending and descending)
 // * cannot be in the restricted codes
 // So basicaly i randomly pick one number as the first digit and next digit
 // cannot be the same, the previous or the next
-func Generate() string {
+func generate() string {
 
-	var current = first()
+	var current = inCharset(charset)
 	pin := []int{current}
 
 	for i := 0; i < 3; i++ {
@@ -65,10 +77,6 @@ var seededRand *rand.Rand = rand.New(
 
 func inCharset(cs []int) int {
 	return cs[seededRand.Intn(len(cs))]
-}
-
-func first() int {
-	return inCharset(charset)
 }
 
 var charset = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

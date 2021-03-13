@@ -17,7 +17,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "PIN", log.LstdFlags|log.Lshortfile)
 
-	service := pin.NewGeneratorService(logger)
+	service := pin.NewGenerator()
 	flag.Parse()
 	r := mux.NewRouter()
 
@@ -36,8 +36,12 @@ func main() {
 	logger.Fatal(srv.ListenAndServe())
 }
 
+type Generator interface {
+	Generate() string
+}
+
 //PinHandler serve / by returning a closure
-func PinHandler(g pin.Generator) func(w http.ResponseWriter, r *http.Request) {
+func PinHandler(g Generator) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		pin := g.Generate()
