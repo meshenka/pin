@@ -3,34 +3,11 @@ package pin
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
-var (
-	nextMap = map[int]int{
-		0: 1,
-		1: 2,
-		2: 3,
-		3: 4,
-		4: 5,
-		6: 7,
-		7: 8,
-		8: 9,
-		9: 0,
-	}
-	previousMap = map[int]int{
-		0: 9,
-		1: 0,
-		2: 1,
-		3: 2,
-		4: 3,
-		5: 4,
-		6: 5,
-		7: 6,
-		8: 7,
-		9: 8,
-	}
-)
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // GeneratorFunc is a stateless implementation as a function
 type GeneratorFunc func() string
@@ -39,58 +16,92 @@ func (f GeneratorFunc) Generate() string {
 	return f()
 }
 
-// NewGenerator creates a Generator service
+// NewGenerator creates a Generator service.
 func NewGenerator() GeneratorFunc {
-	return GeneratorFunc(generate)
-}
+	// Generate security rules
+	// * cannot be a repeated digit
+	// * cannot be a suite of following digits (ascending and descending)
+	// * TODO cannot be in the restricted codes
+	// So basicaly i randomly pick one number as the first digit and next digit
+	// cannot be the same, the previous or the next
+	filter := compose(
+		nocurrent,
+		noprevious,
+		nonext,
+	)
+	return func() string {
+		var charset = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+		pin := make([]int, 4)
+		var current = charset[random.Intn(len(charset))]
+		pin[0] = current
 
-// Generate security rules
-// * cannot be a repeated digit
-// * cannot be a suite of following digits (ascending and descending)
-// * cannot be in the restricted codes
-// So basicaly i randomly pick one number as the first digit and next digit
-// cannot be the same, the previous or the next
-func generate() string {
-
-	var current = inCharset(charset)
-	pin := []int{current}
-
-	for i := 0; i < 3; i++ {
-		current = chooseNext(current)
-		pin = append(pin, current)
+		for i := 0; i < 3; i++ {
+			// TODO i do not like that, need another way to do that
+			charset = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+			current = in(filter(charset, current))
+			pin[i+1] = current
+		}
+		return strings.Trim(strings.Join(strings.Split(fmt.Sprint(pin), " "), ""), "[]")
 	}
-
-	//return strings.Join(pin, "")
-	return fmt.Sprintf("%v", pin)
 }
 
-func next(s int) int {
-	return nextMap[s]
+func next(v int) int {
+	if v == 9 {
+		return 0
+	}
+	return v + 1
 }
 
-func previous(s int) int {
-	return previousMap[s]
+func previous(v int) int {
+	if v == 0 {
+		return 9
+	}
+	return v - 1
 }
 
-var seededRand *rand.Rand = rand.New(
-	rand.NewSource(time.Now().UnixNano()))
-
-func inCharset(cs []int) int {
-	return cs[seededRand.Intn(len(cs))]
+func in(avail []int) int {
+	return avail[random.Intn(len(avail))]
 }
 
-var charset = []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
-func chooseNext(current int) int {
-
-	_charset := []int{}
-	next := next(current)
-	prev := previous(current)
-	for v := range charset {
-		if v != current && v != next && v != prev {
-			_charset = append(_charset, v)
+func nocurrent(avail []int, current int) []int {
+	for i, v := range avail {
+		if v == current {
+			avail[i] = avail[len(avail)-1]
+			return avail[:len(avail)-1]
 		}
 	}
+	return avail
+}
 
-	return inCharset(_charset)
+func nonext(avail []int, current int) []int {
+	n := next(current)
+	for i, v := range avail {
+		if v == n {
+			avail[i] = avail[len(avail)-1]
+			return avail[:len(avail)-1]
+		}
+	}
+	return avail
+}
+
+func noprevious(avail []int, current int) []int {
+	p := previous(current)
+	for i, v := range avail {
+		if v == p {
+			avail[i] = avail[len(avail)-1]
+			return avail[:len(avail)-1]
+		}
+	}
+	return avail
+}
+
+type filterfunc func([]int, int) []int
+
+func compose(filters ...filterfunc) filterfunc {
+	return func(avail []int, current int) []int {
+		for _, f := range filters {
+			avail = f(avail, current)
+		}
+		return avail
+	}
 }
