@@ -2,8 +2,7 @@ DIST_LOCAL=dist/local
 GOEXEC=go
 
 lint:
-	$(GOEXEC) vet ./...
+	golangci-lint run .
 
 build:
-	$(GOEXEC) build -o $(DIST_LOCAL)/cli cmd/cli/main.go
-	$(GOEXEC) build -o $(DIST_LOCAL)/http cmd/http/main.go
+	$(GOEXEC) build -o $(DIST_LOCAL)/server cmd/http/server.go
